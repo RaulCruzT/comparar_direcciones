@@ -36,5 +36,6 @@ export interface LatLng {
 
 export enum comparissonEnum {
   FormatedAddress = 'formatted_address',
-  PlaceId = 'place_id'
+  PlaceId = 'place_id',
+  Location = 'location'
 }

@@ -10,7 +10,7 @@ const garantizarDireccion = (direccion: string, nombre: string) => {
 
 const validarComparissonType = (value: any): comparissonEnum => {
     if (!Object.values(comparissonEnum).includes(value)) {
-        throw new Error(`El parámetro "comparissonType" acepta los valores ${comparissonEnum.FormatedAddress} y ${comparissonEnum.PlaceId}`);
+        throw new Error(`El parámetro "comparissonType" acepta los valores ${comparissonEnum.FormatedAddress}, ${comparissonEnum.PlaceId} y ${comparissonEnum.Location}`);
     }
     return value;
 };
@@ -26,12 +26,18 @@ const compararResultados = (
             formatted_address_2: resultado2.formatted_address,
             misma_direccion: resultado1.formatted_address === resultado2.formatted_address
         };
-    } else {
+    } else if (tipo === comparissonEnum.PlaceId) {
         return {
             place_id_1: resultado1.place_id,
             place_id_2: resultado2.place_id,
             misma_direccion: resultado1.place_id === resultado2.place_id
         };
+    } else {
+        return {
+            location_1: resultado1.geometry.location,
+            location_2: resultado2.geometry.location,
+            misma_direccion: resultado1.geometry.location.lat === resultado2.geometry.location.lat && resultado1.geometry.location.lng === resultado2.geometry.location.lng
+        }
     }
 };
 
@@ -142,6 +148,16 @@ export const compararCoincidenciasResultadosHandler: RequestHandler = async (req
                         direccion2: r2.formatted_address,
                         place_id_1: r1.place_id,
                         place_id_2: r2.place_id,
+                        misma_direccion: true
+                    });
+                }
+            } else if (tipo === comparissonEnum.Location) {
+                if (r1.geometry.location.lat === r2.geometry.location.lat && r1.geometry.location.lng === r2.geometry.location.lng) {
+                    coincidencias.push({
+                        direccion1: r1.formatted_address,
+                        direccion2: r2.formatted_address,
+                        location_1: r1.geometry.location,
+                        location_2: r2.geometry.location,
                         misma_direccion: true
                     });
                 }
