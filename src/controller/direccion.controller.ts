@@ -15,14 +15,11 @@ const validarComparissonType = (value: any): comparissonEnum => {
     return value;
 };
 
-const compararDirecciones = async (
-    direccion1: string,
-    direccion2: string,
+const compararResultados = (
+    resultado1: GeocodingResult,
+    resultado2: GeocodingResult,
     tipo: comparissonEnum
-): Promise<Record<string, any>> => {
-    const resultado1 = await buscar(direccion1);
-    const resultado2 = await buscar(direccion2);
-
+): Record<string, any> => {
     if (tipo === comparissonEnum.FormatedAddress) {
         return {
             formatted_address_1: resultado1.formatted_address,
@@ -36,6 +33,16 @@ const compararDirecciones = async (
             misma_direccion: resultado1.place_id === resultado2.place_id
         };
     }
+};
+
+const compararDirecciones = async (
+    direccion1: string,
+    direccion2: string,
+    tipo: comparissonEnum
+): Promise<Record<string, any>> => {
+    const resultado1 = await buscar(direccion1);
+    const resultado2 = await buscar(direccion2);
+    return compararResultados(resultado1, resultado2, tipo);
 };
 
 export const buscarHandler: RequestHandler = async (req, res) => {
@@ -95,4 +102,52 @@ export const compararLoteHandler: RequestHandler = async (req, res) => {
     );
 
     res.json(resultados);
+};
+
+export const compararCoincidenciasResultadosHandler: RequestHandler = async (req, res) => {
+    const { resultados1, resultados2, comparissonType } = req.body;
+
+    if (!Array.isArray(resultados1) || !Array.isArray(resultados2)) {
+        res.status(400).json({ error: 'Debe enviar dos arreglos de resultados válidos.' });
+        return;
+    }
+
+    let tipo: comparissonEnum;
+    try {
+        tipo = validarComparissonType(comparissonType);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Error en comparissonType';
+        res.status(400).json({ error: message });
+        return;
+    }
+
+    const coincidencias: any[] = [];
+
+    for (const r1 of resultados1) {
+        for (const r2 of resultados2) {
+            if (tipo === comparissonEnum.FormatedAddress) {
+                if (r1.formatted_address === r2.formatted_address) {
+                    coincidencias.push({
+                        direccion1: r1.formatted_address,
+                        direccion2: r2.formatted_address,
+                        formatted_address_1: r1.formatted_address,
+                        formatted_address_2: r2.formatted_address,
+                        misma_direccion: true
+                    });
+                }
+            } else if (tipo === comparissonEnum.PlaceId) {
+                if (r1.place_id === r2.place_id) {
+                    coincidencias.push({
+                        direccion1: r1.formatted_address,
+                        direccion2: r2.formatted_address,
+                        place_id_1: r1.place_id,
+                        place_id_2: r2.place_id,
+                        misma_direccion: true
+                    });
+                }
+            }
+        }
+    }
+
+    res.json({ coincidencias });
 };
